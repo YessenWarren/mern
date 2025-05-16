@@ -1,25 +1,56 @@
 version: "3.8"
+
 services:
-  backend:
-    build: ./server-api
-    container_name: mern-backend
-    ports:
-      - "3005:3005"
+  backend1:
+    build: ./backend
+    container_name: mern-backend-1
+    environment:
+      - PORT=3005
+    expose:
+      - "3005"  # Это экспонирует порт внутри сети Docker
+    networks:
+      - mern-network
+
+  backend2:
+    build: ./backend
+    container_name: mern-backend-2
+    environment:
+      - PORT=3005
+    expose:
+      - "3005"  # Это экспонирует порт внутри сети Docker
     networks:
       - mern-network
 
   frontend:
-    build: ./final-app
+    build: ./frontend
     container_name: mern-frontend
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      - backend1
+      - backend2
     environment:
       - CHOKIDAR_USEPOLLING=true
+    networks:
+      - mern-network
+    volumes:
+      - ./frontend/build:/usr/share/nginx/html  # Привязка build к nginx
+
+  nginx:
+    image: nginx:latest
+    container_name: mern-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/build:/usr/share/nginx/html  # Привязка build к nginx
+    depends_on:
+      - backend1
+      - backend2
+      - frontend
     networks:
       - mern-network
 
 networks:
   mern-network:
-    driver: bridge
+    external: true
